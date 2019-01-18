@@ -105,7 +105,7 @@ def tuner():
         opening = cv2.morphologyEx(erosion, cv2.MORPH_OPEN, kernel)
         closing = cv2.morphologyEx(erosion, cv2.MORPH_CLOSE, kernel)
 
-        _, contours, _ = cv2.findContours(erosion, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+        contours, _ = cv2.findContours(erosion, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
 
         height, width, _ = frame.shape
         min_x, min_y = width, height
