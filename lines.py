@@ -8,6 +8,10 @@ import numpy as np
 cap = cv2.VideoCapture(0)  # Create capture object for webcam
 cap.set(cv2.CAP_PROP_AUTOFOCUS, 0) # Turn the camera autofocus off
 
+WIDTH = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))  # Set the width and height from camera object
+HEIGHT = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+SENSITIVITY = 50  # Define the hsv sensitivity range for color filtering
+
 
 def slope_angle(p1, p2):  # Basic function to calculate the angle of two points
 	x = p2[0] - p1[0]  # Find the x coordinate
@@ -43,14 +47,10 @@ def order_points(box):  # Recieves dimensions of bounding box, and sorts through
 while True:  # Frame capture loop
 	_, frame = cap.read()  # Capture the frames from the camera object
 
-	WIDTH = np.size(frame, 1)
-	HEIGHT = np.size(frame, 0)
-
 	hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-	sensitivity = 50  # Define the hsv ranges for color filtering
-	lower_range = np.array([0,0,255-sensitivity])  # This will find objects that are white
-	upper_range = np.array([255,sensitivity,255])  # The sensitivity will adjust the amount of white to allow
+	lower_range = np.array([0,0,255-SENSITIVITY])  # This will find objects that are white
+	upper_range = np.array([255,SENSITIVITY,255])  # The sensitivity will adjust the amount of white to allow
 
 	mask = cv2.inRange(hsv, lower_range, upper_range)  # Create a mask with the ranges
 	res = cv2.bitwise_and(frame, frame, mask = mask)  # Result if mask is removed from frame
