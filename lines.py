@@ -8,7 +8,7 @@ import time
 import argparse
 from networktables import NetworkTables
 
-cap = cv2.VideoCapture(1)  # Create capture object for webcam
+cap = cv2.VideoCapture(0)  # Create capture object for webcam
 #cap.set(cv2.CV_CAP_PROP_BUFFERSIZE, 3)
 
 NetworkTables.initialize(server='')  # Initialize NetworkTable server
