@@ -2,7 +2,7 @@ import cv2
 import json
 import numpy as np
 
-cap = cv2.VideoCapture(0)  # Define capture object
+cap = cv2.VideoCapture(1)  # Define capture object
 cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)
 
 data = []  # Create array for hsv values parsed from json
@@ -105,7 +105,7 @@ def tuner():
         opening = cv2.morphologyEx(erosion, cv2.MORPH_OPEN, kernel)
         closing = cv2.morphologyEx(erosion, cv2.MORPH_CLOSE, kernel)
 
-        contours, _ = cv2.findContours(erosion, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+        _, contours, _ = cv2.findContours(erosion, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
 
         height, width, _ = frame.shape
         min_x, min_y = width, height

@@ -5,27 +5,20 @@ import itertools
 import math
 import numpy as np
 import time
-import argparse
 from networktables import NetworkTables
 
-cap = cv2.VideoCapture(1)  # Create capture object for webcam
-#cap.set(cv2.CV_CAP_PROP_BUFFERSIZE, 3)
+cap = cv2.VideoCapture(0)  # Create capture object for webcam
 
-NetworkTables.initialize(server='')  # Initialize NetworkTable server
+NetworkTables.initialize(server='10.6.12.2')  # Initialize NetworkTable server
 sd = NetworkTables.getTable("VisionTable")  # Fetch the NetworkTable table
 
 WIDTH = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))  # Set the width and height from camera object
 HEIGHT = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-print(WIDTH, HEIGHT)
-SENSITIVITY = 5  # Define the hsv sensitivity range for color filtering
+SENSITIVITY = 8  # Define the hsv sensitivity range for color filtering
 ANGLE_OFFSET = 5  # Define the offset range from 90 degrees to consider a "lockon"
 LOCATION_OFFSET = 60  # The amount of pixel offset from the center point in the camera to verify if object is in front
 CONTOUR_LIMIT = 500  # The limit for the size of the contour
 
-parser = argparse.ArgumentParser(description="Settings for Team 612's Vision")
-parser.add_argument("-show", "--show", type=int, help="Enable opencv imshow: 1=Enabled, (Don't enable for competition!)")
-args = parser.parse_args()
 
 def find_angle(p1, p2):  # Basic function to calculate the angle of two points
 	x = p2[0] - p1[0]  # Find the x coordinate
@@ -102,13 +95,11 @@ while True:  # Frame capture loop
 	mask = cv2.inRange(hsv, lower_range, upper_range)  # Create a mask with the ranges
 	res = cv2.bitwise_and(frame, frame, mask = mask)  # Result if mask is removed from frame
 
-	#blurred = cv2.GaussianBlur(mask, (5, 5), 0)  # Blur image to reduce noise
-	mask = cv2.erode(mask, None, iterations = 2)
-	mask = cv2.dilate(mask, None, iterations = 2)
+	blurred = cv2.GaussianBlur(mask, (5, 5), 0)  # Blur image to reduce noise
 
-	_, contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)  # Find all the contours in the mask
+	_, contours, _ = cv2.findContours(blurred, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)  # Find all the contours in the mask
 
-	if len(contours) > 0:  # Only run if there are contours on the screen
+	if contours:  # Only run if there are contours on the screen
 
 		c = max(contours, key=cv2.contourArea)  # Isolate the largest contour
 
@@ -125,21 +116,15 @@ while True:  # Frame capture loop
 			midpoint2 = midpoint(side2[0], side2[1])
 
 			angle = find_angle(midpoint1, midpoint2)  # Get the angle of the line made by the two points
+			
 			print(angle)
-
+			#print(angle)
 			angle_dict = verify_angle(angle)
 			location_dict = verify_location(midpoint1, midpoint2)
 
 			sd.putNumber("angle", angle)  # Push data to table
 			sd.putNumber("p1_offset", location_dict['p1_offset'])  # Push data to table
 			sd.putNumber("p2_offset", location_dict['p2_offset'])  # Push data to table
-			
-			if args.show == 1:
-				cv2.drawContours(frame, [box], -1, (0, 255, 0), 2)  # Draw rest of contour for fun
-				cv2.line(frame, midpoint1, midpoint2, (255,0,0), 2)  # Draw line create by two for fun
-				cv2.line(frame, (int(WIDTH/2), 0), (int(WIDTH/2), HEIGHT), (0,0,255), 2)  # Draw line through screen by two for fun
-				cv2.line(frame, (int(WIDTH/2) - LOCATION_OFFSET, 0), (int(WIDTH/2) - LOCATION_OFFSET, HEIGHT), (255,0,0), 2)  # Draw line through screen by two for fun
-				cv2.line(frame, (int(WIDTH/2) + LOCATION_OFFSET, 0), (int(WIDTH/2) + LOCATION_OFFSET, HEIGHT), (255,0,0), 2)  # Draw line through screen by two for fun
 
 		else:
 			sd.putNumber("angle", 0)  # Push data to table
@@ -150,10 +135,6 @@ while True:  # Frame capture loop
 		sd.putNumber("angle", 0)  # Push data to table
 		sd.putNumber("p1_offset", 0)  # Push data to table
 		sd.putNumber("p2_offset", 0)  # Push data to table
-
-	if args.show == 1:
-		cv2.imshow('frame', frame)  # Display the frames
-		cv2.imshow('mask', mask)  # Display the mask
 
 	k = cv2.waitKey(5) & 0xFF  # Check for key strokes
 	if k == 27:  # If ESC is clicked close window
