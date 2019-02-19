@@ -115,22 +115,15 @@ while True:  # Frame capture loop
 
 	hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-	lower_range = np.array([0, 0, 212])
-	upper_range = np.array([131, 255, 255])
-	'''
 	lower_range = np.array([0,0,255-SENSITIVITY])  # This will find objects that are white
 	upper_range = np.array([255,SENSITIVITY,255])  # The sensitivity will adjust the amount of white to allow
-	'''
+
 	mask = cv2.inRange(hsv, lower_range, upper_range)  # Create a mask with the ranges
 	res = cv2.bitwise_and(frame, frame, mask = mask)  # Result if mask is removed from frame
 
-	#blurred = cv2.GaussianBlur(mask, (5, 5), 0)  # Blur image to reduce noise
-	kernel_erode = np.ones((4,4), np.uint8)
-	eroded_mask = cv2.erode(mask, kernel_erode, iterations=1)
-	kernel_dilate = np.ones((6,6),np.uint8)
-	dilated_mask = cv2.dilate(eroded_mask, kernel_dilate, iterations=1)
+	blurred = cv2.GaussianBlur(mask, (5, 5), 0)  # Blur image to reduce noise
 
-	_, contours, _ = cv2.findContours(dilated_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)  # Find all the contours in the mask
+	_, contours, _ = cv2.findContours(blurred, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)  # Find all the contours in the mask
 
 	if len(contours) > 0:  # Only run if there are contours on the screen
 
@@ -138,32 +131,10 @@ while True:  # Frame capture loop
 
 		if c.size > CONTOUR_LIMIT:
 
-			box = cv2.minAreaRect(c)  # Find the box dimensions of contour
-			box = cv2.boxPoints(box) if imutils.is_cv2() else cv2.boxPoints(box)  # Adjust for rotation
-			box = np.array(box, dtype="int")  # Create a numpy array of box dimensions
-
-			rect = order_points(box)  # Return the two smallest point combinations from box dimensions
-			side1 = rect[0]  # Split the multidimensional array returned from "order_points" into two variables
-			side2 = rect[1]
-			midpoint1 = midpoint(side1[0], side1[1])  # Find the midpoint of each point combinations
-			midpoint2 = midpoint(side2[0], side2[1])
-
-			angle = find_angle(midpoint1, midpoint2)  # Get the angle of the line made by the two points
-			print(angle)
-
-			angle_dict = verify_angle(angle)
-			location_dict = verify_location(midpoint1, midpoint2)
-
-			sd.putNumber("angle", angle)  # Push data to table
-			sd.putNumber("p1_offset", location_dict['p1_offset'])  # Push data to table
-			sd.putNumber("p2_offset", location_dict['p2_offset'])  # Push data to table
-			
-			if args.show == 1:
-				cv2.drawContours(frame, [box], -1, (0, 255, 0), 2)  # Draw rest of contour for fun
-				cv2.line(frame, midpoint1, midpoint2, (255,0,0), 2)  # Draw line create by two for fun
-				cv2.line(frame, (CENTER_POINT["X"], 0), (CENTER_POINT["X"], HEIGHT), (0,0,255), 2)  # Draw line through screen by two for fun
-				cv2.line(frame, (CENTER_POINT["X"] - LOCATION_OFFSET, 0), (CENTER_POINT["X"] - LOCATION_OFFSET, HEIGHT), (255,0,0), 2)  # Draw line through screen by two for fun
-				cv2.line(frame, (CENTER_POINT["X"] + LOCATION_OFFSET, 0), (CENTER_POINT["X"] + LOCATION_OFFSET, HEIGHT), (255,0,0), 2)  # Draw line through screen by two for fun
+			M = cv2.moments(c)
+			cx = int(M['m10']/M['m00'])
+			cy = int(M['m01']/M['m00'])
+			print("Centroid of the biggest area: ({}, {})".format(cx, cy))
 
 		else:
 			sd.putNumber("angle", 0)  # Push data to table
@@ -178,7 +149,6 @@ while True:  # Frame capture loop
 	if args.show == 1:
 		cv2.imshow('frame', frame)  # Display the frames
 		cv2.imshow('mask', mask)  # Display the mask
-		cv2.imshow('Dab', dilated_mask)  # Display the mask
 
 	k = cv2.waitKey(5) & 0xFF  # Check for key strokes
 	if k == 27:  # If ESC is clicked close window
